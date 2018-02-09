@@ -2,6 +2,7 @@ package main
 
 import (
 	"testing"
+	"math/rand"
 )
 
 // Split uint16 opcodes into uint8 bytes storable in Chip8 memory
@@ -93,5 +94,35 @@ func TestVRegisterAssign(t *testing.T) {
 
 	if emu.V[1] != 0xCD {
 		t.Errorf("Register assign failed (V1), target: 0x%02X, actual: 0x%02X", 0xCD, emu.V[1])
+	}
+}
+
+func TestDisplayClear(t *testing.T) {
+	// Opcode to clear display
+	code := []uint16{0x00E0}
+	data := byteChunk(code)
+
+	emu := NewChip8()
+	emu.LoadData(data)
+
+	// Pollute display area memory with random values
+	for x, _ := range(emu.SCREEN) {
+		for y, _ := range(emu.SCREEN[x]) {
+			// Random uint8 value
+			emu.SCREEN[x][y] = uint8(rand.Intn(255))
+		}
+	}
+
+	// Complete once cycle to execute the opcode to clear the display
+	emu.Cycle()
+
+	// Check that all display values have been cleared
+	for x, _ := range(emu.SCREEN) {
+		for y, _ := range(emu.SCREEN[x]) {
+			val := emu.SCREEN[x][y]
+			if val != 0 {
+				t.Errorf("Display clear failed (SCREEN[%d][%d]), target: 0, actual: %d", x, y, val)
+			}
+		}
 	}
 }

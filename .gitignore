@@ -1,0 +1,5 @@
+# Ignore the main binary
+chip8-go
+
+# Vim files
+.*.swp

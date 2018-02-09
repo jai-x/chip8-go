@@ -4,7 +4,7 @@ import (
 	"math/rand"
 )
 
-// Each function implemments the 2 byte opcode beginning with the named
+// Each function implements the 2 byte opcode beginning with the named
 // hexadecimal value in the function name
 
 // 0x0nnn - Calls RCA 1802 Program at address nnn
@@ -24,11 +24,9 @@ func (c *Chip8) Opcode0() {
 	// Display clear
 	case 0xE0:
 		// Zero all values in screen array
-		for x, _ := range(c.SCREEN) {
-			for y, _ := range(c.SCREEN[x]) {
-				c.SCREEN[x][y] = 0
-			}
-		}
+		// Quick reinitialise of 2d array
+		// 64 x 32 monochrome display
+		c.SCREEN = [64][32]uint8{}
 
 	// Subroutine return
 	case 0xEE:
@@ -149,7 +147,66 @@ func (c *Chip8) Opcode7() {
 // 0x8xy7 - Subtract Vx = Vy - Vx (Vf = carry ? 1 : 0)
 // 0x8xyE - Bitwise  Vx = Vy = Vy << 1 (Vf = Vy MSB)
 func (c *Chip8) Opcode8() {
-	dief("Opcode not implemmented yet: 0x%04X\n", c.OPCODE)
+	// x consists of bits 4 - 7
+	x := uint8(c.OPCODE >> 8) & 0x0F
+	// y consists of bits 8 - 11
+	y := uint8(c.OPCODE >> 4) & 0x0F
+	// Last 4 bits of the opcode determines the operation
+	last := uint8(c.OPCODE) >> 4
+
+	switch last {
+	// Vx = Vy
+	case 0x0:
+		c.V[x] = c.V[y]
+
+	// Vx = Vx | Vy
+	case 0x1:
+		c.V[x] = c.V[x] | c.V[y]
+
+	// Vx = Vx & Vy
+	case 0x2:
+		c.V[x] = c.V[x] & c.V[y]
+
+	// Vx = Vx ^ Vy
+	case 0x3:
+		c.V[x] = c.V[x] ^ c.V[y]
+
+	// Vx += Vy
+	case 0x4:
+		c.V[x] += c.V[y]
+
+	// Vx -= Vy
+	case 0x5:
+		c.V[x] -= c.V[y]
+
+	// Vx = Vy = Vy >> 1 (Vf = Vy LSB)
+	case 0x6:
+		// Put LSB into Vf
+		c.V[0xF] = c.V[y] & 0x1
+		// Bitshift and assign to both registers
+		res := c.V[y] >> 1
+		c.V[x], c.V[y] = res, res
+
+	// Vx = Vy - Vx (Vf = carry ? 1 : 0)
+	case 0x7:
+		carry := 0
+		if c.V[y] > c.V[x] {
+			carry = 1
+		}
+		c.V[0xF] = uint8(carry)
+		c.V[x] = c.V[y] - c.V[x]
+
+	// Vx = Vy = Vy << 1 (Vf = Vy MSB)
+	case 0xE:
+		// Put MSB into Vf
+		c.V[0xF] = c.V[y] & 0x8
+		// Bitshift and assign to both registers
+		res := c.V[y] << 1
+		c.V[x], c.V[y] = res, res
+	}
+
+	// Move to next 2 byte opcode
+	c.PC += 0x2
 }
 
 // 0x9xy0 - Conditional check of registers Vx and Vy
@@ -203,7 +260,7 @@ func (c *Chip8) OpcodeC() {
 	c.PC += 0x2
 }
 
-//:0xDxyn - Display sprite at screen location x,y of size n, date from offset I
+// 0xDxyn - Display sprite at screen location x,y of size n, date from offset I
 // Sprite is of fixed width 8 pixels with data read starting from address
 // pointed to by I. Sprites will wraparound screen top and bottom.
 // Sprite values are XOR'd(^) with current screen values. If any screen values
