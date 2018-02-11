@@ -17,10 +17,10 @@ import (
 // Set the program counter at the previous address found in the stack
 // Increment program counter to next instruction
 func (c *Chip8) Opcode0() {
-
 	// Only last byte needed to determine what to do
-	last := uint8(c.OPCODE)
-	switch last {
+	inst := uint8(c.OPCODE)
+
+	switch inst {
 	// Display clear
 	case 0xE0:
 		// Zero all values in screen array
@@ -152,9 +152,9 @@ func (c *Chip8) Opcode8() {
 	// y consists of bits 8 - 11
 	y := uint8(c.OPCODE >> 4) & 0x0F
 	// Last 4 bits of the opcode determines the operation
-	last := uint8(c.OPCODE) >> 4
+	inst := uint8(c.OPCODE) >> 4
 
-	switch last {
+	switch inst {
 	// Vx = Vy
 	case 0x0:
 		c.V[x] = c.V[y]
@@ -251,7 +251,7 @@ func (c *Chip8) OpcodeB() {
 func (c *Chip8) OpcodeC() {
 	// x consists of the bits 4-7
 	x := uint8(c.OPCODE >> 8) & 0x0F
-	// nn consists of the bits 8-16
+	// nn consists of the bits 8-15
 	nn := uint8(c.OPCODE)
 
 	c.V[x] = uint8(rand.Intn(256)) & nn
@@ -281,9 +281,60 @@ func (c *Chip8) OpcodeE() {
 // 0xFx18 - Set the sound timer to value of Vx
 // 0xFx1E - I += Vx
 // 0xFx29 - Set I to the location of the sprite values for the value in Vx
-// 0xFx33 - BCD something TODO
+// 0xFx33 - Store binary coded decimal value of Vx and store in memory from I
 // 0xFx55 - Dump registers V0 to Vx to memory at address starting from I
 // 0xFx65 - Load registers V0 to Vx from memory at address starting from I
 func (c *Chip8) OpcodeF() {
-	dief("Opcode not implemmented yet: 0x%04X\n", c.OPCODE)
+	// Last 8 bits determine instruction of opcode
+	inst := uint8(c.OPCODE)
+	// x value consists of the bits 4-7
+	x := uint8(c.OPCODE >> 8) & 0x0F
+
+	switch inst {
+	// Vx = DT
+	case 0x07:
+		c.V[x] = c.DT
+
+	// Block await for a keypress. Store key value into Vx
+	case 0x0A:
+		dief("Opcode not implemmented yet: 0x%04X\n", c.OPCODE)
+
+	// DT = Vx
+	case 0x15:
+		c.DT = c.V[x]
+
+	// ST = Vx
+	case 0x18:
+		c.ST = c.V[x]
+
+	// I += Vx
+	case 0x1E:
+		c.I += uint16(c.V[x])
+
+	// Set I to the location of the sprite values for the value in Vx
+	case 0x29:
+		// Sprites are stored in interpreter memory from 0x000 to 0x1FF
+		// Sprite of hex value 0xn will be at offset in memory 5 * 0xn
+		c.I = 5 * uint16(c.V[x])
+
+	// Store binary coded decimal value of Vx and store in memory from I
+	case 0x33:
+		// Hundreds
+		c.MEM[c.I]     = uint8(int(c.V[x]) % 1000 / 100)
+		// Tens
+		c.MEM[c.I + 1] = uint8(int(c.V[x]) % 100 / 10)
+		// Ones
+		c.MEM[c.I + 2] = uint8(int(c.V[x]) % 10)
+
+	// Dump registers V0 to Vx to memory at address starting from I
+	case 0x55:
+		copy(c.MEM[c.I:], c.V[0:x])
+
+	// Load registers V0 to Vx from memory at address starting from I
+	case 0x65:
+		copy(c.V[0:x], c.MEM[c.I:])
+	}
+
+	// Move to next 2 byte opcode
+	c.PC += 0x2
 }

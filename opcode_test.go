@@ -22,7 +22,7 @@ func TestDirectJump(t *testing.T) {
 	data := byteChunk(code)
 
 	emu := NewChip8()
-	emu.LoadData(data)
+	emu.LoadProgram(data)
 
 	// Complete one cycle such that program counter should now be set to the jump address
 	emu.Cycle()
@@ -40,7 +40,7 @@ func TestSubroutineCallAndReturn(t *testing.T) {
 	data := byteChunk(code)
 
 	emu := NewChip8()
-	emu.LoadData(data)
+	emu.LoadProgram(data)
 
 	// Complete one cycle such that the subroutine has been called
 	emu.Cycle()
@@ -81,7 +81,7 @@ func TestVRegisterAssign(t *testing.T) {
 	data := byteChunk(code)
 
 	emu := NewChip8()
-	emu.LoadData(data)
+	emu.LoadProgram(data)
 
 	// Complete two cycles such that both values are stored
 	emu.Cycle()
@@ -103,7 +103,7 @@ func TestDisplayClear(t *testing.T) {
 	data := byteChunk(code)
 
 	emu := NewChip8()
-	emu.LoadData(data)
+	emu.LoadProgram(data)
 
 	// Pollute display area memory with random values
 	for x, _ := range(emu.SCREEN) {

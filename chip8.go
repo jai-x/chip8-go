@@ -29,10 +29,46 @@ type Chip8 struct {
 
 	// 64x32 size monochrome display
 	SCREEN [64][32]uint8
+
+	// Delay timer
+	// When above zero, will decrement at a rate of 60Hz
+	DT uint8
+
+	// Sound timer
+	// When above zero, will play a tone and also decrement at a rate of 60Hz
+	ST uint8
 }
 
 func NewChip8() *Chip8 {
 	var out Chip8
+
+	// Load the sprite table into memory
+	// Sprites are monochrome bitmaps representing the hexadecimal characters
+	// Sprite of hex value 0xn will be at offset in memory 5 * 0xn
+
+	// http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
+	sprites := []uint8 {
+		0x0F, 0x90, 0x90, 0x90, 0xF0, // Sprite of 0
+		0x20, 0x60, 0x20, 0x20, 0x70, // Sprite of 1
+		0xF0, 0x10, 0xF0, 0x80, 0xF0, // Sprite of 2
+		0xF0, 0x10, 0xF0, 0x10, 0xF0, // Sprite of 3
+		0x90, 0x90, 0xF0, 0x10, 0x10, // Sprite of 4
+		0xF0, 0x80, 0xF0, 0x10, 0xF0, // Sprite of 5
+		0xF0, 0x80, 0xF0, 0x90, 0xF0, // Sprite of 6
+		0xF0, 0x10, 0x20, 0x40, 0x40, // Sprite of 7
+		0xF0, 0x90, 0xF0, 0x90, 0xF0, // Sprite of 8
+		0xF0, 0x90, 0xF0, 0x10, 0xF0, // Sprite of 9
+		0xF0, 0x90, 0xF0, 0x90, 0x90, // Sprite of A
+		0xE0, 0x90, 0xE0, 0x90, 0xE0, // Sprite of B
+		0xF0, 0x80, 0x80, 0x80, 0xF0, // Sprite of C
+		0xE0, 0x90, 0x90, 0x90, 0xE0, // Sprite of D
+		0xF0, 0x80, 0xF0, 0x80, 0xF0, // Sprite of E
+		0xF0, 0x80, 0xF0, 0x80, 0x80, // Sprite of F
+	}
+
+	// Sprites are stored in interpreter memory from 0x000 to 0x1FF
+	out.LoadData(sprites, 0)
+
 	// Program counter starts at 0x200 where the ROM is stored in memory
 	out.PC = 0x200
 	return &out
@@ -44,15 +80,19 @@ func (c *Chip8) LoadROM(rompath string) {
 	if err != nil {
 		die("Could not read ROM file at path:", rompath)
 	}
-
-	c.LoadData(data)
+	c.LoadProgram(data)
 }
 
-// Load array of program data directly into ROM space in the Chip8 memory bank
-func (c *Chip8) LoadData(data []uint8) {
+// Load program data directly into program space in the Chip8 memory bank
+func (c *Chip8) LoadProgram(data []uint8) {
 	// MEM from 0x000 to 0x1FF is reserved for the interpreter
 	// Loaded roms start from 0x200
-	copy(c.MEM[0x200:], data)
+	c.LoadData(data, 0x200)
+}
+
+// Load array of data directly into Chip8 memory at given offset
+func (c *Chip8) LoadData(data []uint8, offset int) {
+	copy(c.MEM[offset:], data)
 }
 
 // Complete one CPU cycle of the Chip8
