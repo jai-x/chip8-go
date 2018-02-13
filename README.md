@@ -3,16 +3,16 @@ A CHIP-8 emulator written in golang
 
 ## TODO
 
-* Graphical draw to screen memory array
-* Keyboard value store registers
-* Keyboard value check opcodes
-* Block await keyboard using channel
-* Unit tests for each opcode
-* Realtime decrement of delay timer and sound timer at 60Hz
-* Graphical display of screen memory using termbox
-* Keyboard input using termbox
-* Addtional graphical features (show stack and registers live)
-* Debug interface?
+- [x] Graphical draw to screen memory array
+- [ ] Keyboard value store registers
+- [ ] Keyboard value check opcodes
+- [ ] Block await keyboard using channel
+- [ ] Unit tests for each opcode
+- [ ] Realtime decrement of delay timer and sound timer at 60Hz
+- [ ] Graphical display of screen memory using termbox
+- [ ] Keyboard input using termbox
+- [ ] Addtional graphical features (show stack and registers live)
+- [ ] Debug interface?
 
 ## Resources used
 
