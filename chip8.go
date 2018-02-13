@@ -4,6 +4,11 @@ import (
 	"io/ioutil"
 )
 
+const (
+	SCREENW uint8 = 64
+	SCREENH uint8 = 32
+)
+
 type Chip8 struct {
 	// 16 general purpose 8 bit registers
 	V [0x10]uint8
@@ -28,7 +33,7 @@ type Chip8 struct {
 	OPCODE uint16
 
 	// 64x32 size monochrome display
-	SCREEN [64][32]uint8
+	SCREEN [SCREENW][SCREENH]bool
 
 	// Delay timer
 	// When above zero, will decrement at a rate of 60Hz
@@ -37,6 +42,15 @@ type Chip8 struct {
 	// Sound timer
 	// When above zero, will play a tone and also decrement at a rate of 60Hz
 	ST uint8
+
+	// Keyboard values
+	// Represents the state of the each hexadecimal key value press
+	// 1 for pressed, 0 for not pressed
+	KEY [0xF]uint8
+
+	// Channel to await a keypress blocking
+	// Receives a hexadecimal value (0x0 - 0xF)
+	KEYCHAN chan uint8
 }
 
 func NewChip8() *Chip8 {
@@ -71,6 +85,10 @@ func NewChip8() *Chip8 {
 
 	// Program counter starts at 0x200 where the ROM is stored in memory
 	out.PC = 0x200
+
+	// Initialise keypress channel
+	out.KEYCHAN = make(chan uint8)
+
 	return &out
 }
 

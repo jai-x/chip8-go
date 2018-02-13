@@ -26,7 +26,7 @@ func (c *Chip8) Opcode0() {
 		// Zero all values in screen array
 		// Quick reinitialise of 2d array
 		// 64 x 32 monochrome display
-		c.SCREEN = [64][32]uint8{}
+		c.SCREEN = [SCREENW][SCREENH]bool{}
 
 	// Subroutine return
 	case 0xEE:
@@ -48,7 +48,7 @@ func (c *Chip8) Opcode1() {
 	c.PC = nnn
 }
 
-// Ox2nnn - Call subroutine at address nnn
+// 0x2nnn - Call subroutine at address nnn
 // Store current program counter in stack location indicated by stack pointer
 // Increment stack pointer and set program counter to subroutine address
 func (c *Chip8) Opcode2() {
@@ -217,7 +217,7 @@ func (c *Chip8) Opcode9() {
 	// y consists of the bits 8-11
 	y := uint8(c.OPCODE >> 4) & 0x0F
 
-	// A full instruction  is 2 bytes, so a skip by 4 bytes
+	// A full instruction  is 2 bytes, so a skip is 4 bytes
 	if c.V[x] != c.V[y] {
 		c.PC += 0x4
 	} else {
@@ -260,19 +260,78 @@ func (c *Chip8) OpcodeC() {
 	c.PC += 0x2
 }
 
-// 0xDxyn - Display sprite at screen location x,y of size n, date from offset I
+// dank bits boi
+func bytetobitarray(theByte uint8) (out [8]bool) {
+	for i := uint8(0); i < 8; i++ {
+		out[i] = ((theByte & (1 << i)) >> i) != 0
+	}
+	return
+}
+
+// 0xDxyn - Display sprite at screen location x,y of size n, data from offset I
 // Sprite is of fixed width 8 pixels with data read starting from address
 // pointed to by I. Sprites will wraparound screen top and bottom.
 // Sprite values are XOR'd(^) with current screen values. If any screen values
 // are set to 0, Vf is set to 1.
 func (c *Chip8) OpcodeD() {
-	dief("Opcode not implemmented yet: 0x%04X\n", c.OPCODE)
+	// x value consists of the bits 4-7
+	x := uint8(c.OPCODE >> 8) & 0x0F
+	// y value consists of the bits 8-11
+	y := uint8(c.OPCODE >> 4) & 0x0F
+	// n value consists of the bits 12 - 16
+	n := uint8(c.OPCODE) & 0x0F
+
+	// Read n bytes of sprite data starting from address at I
+	sprite := make([][8]bool, n)
+	for offset := 0; uint8(offset) < n; offset++ {
+		line := c.MEM[c.I + uint16(offset)]
+		sprite[offset] = bytetobitarray(line)
+	}
+
+	for w, line := range(sprite) {
+		for h, bit := range(line) {
+			// Determine postion of bit with screen wrap-around
+			xpos := (uint8(w) + x) % SCREENW
+			ypos := (uint8(h) + y) % SCREENH
+			// XOR bit onto screen
+			c.SCREEN[xpos][ypos] = c.SCREEN[xpos][ypos] != bit
+		}
+	}
+
+	// Move to next 2 byte opcode
+	c.PC += 0x2
 }
 
 // 0xEx9E - Skip next instruction if the key value stored in Vx is currently pressed
 // 0xExA1 - Skip next instruction if the key value stored in Vx is not currenly pressed
 func (c *Chip8) OpcodeE() {
-	dief("Opcode not implemmented yet: 0x%04X\n", c.OPCODE)
+	// Last 8 bits determine instruction of opcode
+	inst := uint8(c.OPCODE)
+	// x value consists of the bits 4-7
+	x := uint8(c.OPCODE >> 8) & 0x0F
+
+	var skip bool
+
+	switch inst {
+	// Skip next instruction if KEY[Vx] == 1
+	case 0x9E:
+		if c.KEY[c.V[x]] == 1 {
+			skip = true
+		}
+
+	// Skip next instruction if KEY[Vx] == 0
+	case 0xA1:
+		if c.KEY[c.V[x]] == 0 {
+			skip = true
+		}
+	}
+
+	// A full instruction is 2 bytes, so a skip is 4 bytes
+	if skip {
+		c.PC += 0x4
+	} else {
+		c.PC += 0x2
+	}
 }
 
 // 0xFx07 - Set Vx to value of the delay timer
@@ -297,7 +356,7 @@ func (c *Chip8) OpcodeF() {
 
 	// Block await for a keypress. Store key value into Vx
 	case 0x0A:
-		dief("Opcode not implemmented yet: 0x%04X\n", c.OPCODE)
+		c.V[x] = <-c.KEYCHAN
 
 	// DT = Vx
 	case 0x15:

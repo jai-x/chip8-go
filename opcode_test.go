@@ -108,8 +108,8 @@ func TestDisplayClear(t *testing.T) {
 	// Pollute display area memory with random values
 	for x, _ := range(emu.SCREEN) {
 		for y, _ := range(emu.SCREEN[x]) {
-			// Random uint8 value
-			emu.SCREEN[x][y] = uint8(rand.Intn(255))
+			// Random true or false for monochrome display
+			emu.SCREEN[x][y] = rand.Intn(1) != 0
 		}
 	}
 
@@ -120,8 +120,8 @@ func TestDisplayClear(t *testing.T) {
 	for x, _ := range(emu.SCREEN) {
 		for y, _ := range(emu.SCREEN[x]) {
 			val := emu.SCREEN[x][y]
-			if val != 0 {
-				t.Errorf("Display clear failed (SCREEN[%d][%d]), target: 0, actual: %d", x, y, val)
+			if val != false {
+				t.Errorf("Display clear failed (SCREEN[%d][%d]), target: false, actual: %b", x, y, val)
 			}
 		}
 	}
